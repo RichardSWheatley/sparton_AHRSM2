@@ -168,7 +168,7 @@ if __name__ == '__main__':
         if (verify_checksum(response)):
             populate_gyros(response, imu_msg)
         else:
-            rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
+            rospy.logerr("AHRS-M2: Bad checksum, skipping dataset.")
             continue
 
         # Get orientation in ENU convention with East as 0 yaw reference.
@@ -177,7 +177,7 @@ if __name__ == '__main__':
         if (verify_checksum(response)):
             populate_quaternion(response, imu_msg)
         else:
-            rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
+            rospy.logerr("AHRS-M2: Bad checksum, skipping dataset.")
             continue
 
         # Get linear acceleration.
@@ -186,7 +186,7 @@ if __name__ == '__main__':
         if (verify_checksum(response)):
             populate_accels(response, imu_msg)
         else:
-            rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
+            rospy.logerr("AHRS-M2: Bad checksum, skipping dataset.")
             continue
 
         # Publish the current message.
