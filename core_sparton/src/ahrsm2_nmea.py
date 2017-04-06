@@ -9,12 +9,18 @@ import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 class SerialWrapper:
-    def __init__(self, device, baud, timeout):
-        self.ser = serial.Serial(device, baud, timeout)
+    
+
+    def __init__(self):
+        self.ser = serial.Serial()
 
     def sendData(self, data):
         self.ser.write(data)
-
+        
+    def set_params(self, device, baud, time_out):
+        self.ser.baudrate = baud
+        self.ser.port = device
+        sefl.ser.timeout = time_out
 
 # Verify the checksum obtained in the NMEA message.
 def verify_checksum(response):
@@ -122,6 +128,8 @@ def set_all_covariance(imu_msg, covariance_matrix):
 # Setup compass to output data with a checksum.        
 def setup_compass_output():
     compass_serial.sendData("\x13")
+    
+compass_serial = SerialWrapper()
 
 if __name__ == '__main__':
 
@@ -148,7 +156,7 @@ if __name__ == '__main__':
     compass_port = rospy.get_param("~port", default_port)
     compass_baud = rospy.get_param("~baud", default_baud)
 
-    compass_serial = SerialWrapper(compass_port, compass_baud, timeout=1)
+    compass_serial.set_params(compass_port, compass_baud, 1)
 
     try:
         # Clear all repeating I/O that could be leftover from operation.
