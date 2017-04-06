@@ -8,6 +8,14 @@ from sensor_msgs.msg import Imu
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+class SerialWrapper:
+    def __init__(self, device, baud, timeout):
+        self.ser = serial.Serial(device, baud, timeout)
+
+    def sendData(self, data):
+        self.ser.write(data)
+
+
 # Verify the checksum obtained in the NMEA message.
 def verify_checksum(response):
     # strip leading $
@@ -112,10 +120,12 @@ def set_all_covariance(imu_msg, covariance_matrix):
         imu_msg.linear_acceleration_covariance[i] = covariance_matrix[i]
 
 # Setup compass to output data with a checksum.        
-def setp_compass_output(serial_port):
-    serial_port.write("\x13")
+def setup_compass_output():
+    compass_serial.sendData("\x13")
 
 if __name__ == '__main__':
+
+
     # Initialize node
     rospy.init_node("ahrsm2_node")
     # Initialize publisher
@@ -138,19 +148,19 @@ if __name__ == '__main__':
     compass_port = rospy.get_param("~port", default_port)
     compass_baud = rospy.get_param("~baud", default_baud)
 
-    compass_serial = serial.Serial(compass_port, compass_baud, timeout=1)
+    compass_serial = SerialWrapper(compass_port, compass_baud, timeout=1)
 
     try:
         # Clear all repeating I/O that could be leftover from operation.
-        compass_serial.write("\x13")
-        compass_serial.write("$xxHDM\r\n")
-        compass_serial.write("printmask 0 set drop\r\n")
-        compass_serial.write("printmodulus 0 set drop\r\n")
-        compass_serial.write("printtrigger 0 set drop\r\n")
+        compass_serial.sendData("\x13")
+        compass_serial.sendData("$xxHDM\r\n")
+        compass_serial.sendData("printmask 0 set drop\r\n")
+        compass_serial.sendData("printmodulus 0 set drop\r\n")
+        compass_serial.sendData("printtrigger 0 set drop\r\n")
 
         rospy.sleep(0.1)
         # Resume output allowed. Ctrl-Q
-        compass_serial.write("\x11")
+        compass_serial.sendData("\x11")
         rospy.sleep(0.1)
         # Flush all buffers.
         compass_serial.flushInput()
@@ -163,7 +173,7 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         # Get angular velocity
-        compass_serial.write("$PSPA,G\r\n")
+        compass_serial.sendData("$PSPA,G\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
             populate_gyros(response, imu_msg)
@@ -172,7 +182,7 @@ if __name__ == '__main__':
             continue
 
         # Get orientation in ENU convention with East as 0 yaw reference.
-        compass_serial.write("$PSPA,QUAT\r\n")
+        compass_serial.sendData("$PSPA,QUAT\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
             populate_quaternion(response, imu_msg)
@@ -181,7 +191,7 @@ if __name__ == '__main__':
             continue
 
         # Get linear acceleration.
-        compass_serial.write("$PSPA,A\r\n")
+        compass_serial.sendData("$PSPA,A\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
             populate_accels(response, imu_msg)
