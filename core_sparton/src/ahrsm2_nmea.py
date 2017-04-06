@@ -30,7 +30,7 @@ def verify_checksum(response):
     return hexstring == checksum
 
 # Populate message angular velocity values.
-def populate_G(string, message):
+def populate_gyros(string, message):
     split_string = string.split(",")
     # Split off each value expression "<a>=<value>" as a string.
     Gx_string = split_string[1]
@@ -49,7 +49,7 @@ def populate_G(string, message):
     message.angular_velocity.z = -Gz_float
 
 # Populate message quaternion data
-def populate_QUAT(string, message):
+def populate_quaternion(string, message):
     split_string = string.split(",")
     # Split off each value expression "<a>=<value>" as a string.
     w_string = split_string[1]
@@ -78,7 +78,7 @@ def populate_QUAT(string, message):
     message.orientation.z = quat[2]
 
 # Populate linear acceleration data.
-def populate_A(string, message):
+def populate_accels(string, message):
     split_string = string.split(",")
     # Split off each value expression "<a>=<value>" as a string.
     Ax_string = split_string[1]
@@ -111,15 +111,19 @@ def set_all_covariance(imu_msg, covariance_matrix):
         imu_msg.angular_velocity_covariance[i] = covariance_matrix[i]
         imu_msg.linear_acceleration_covariance[i] = covariance_matrix[i]
 
+# Setup compass to output data with a checksum.        
+def setp_compass_output(serial_port):
+    serial_port.write("\x13")
+
 if __name__ == '__main__':
     # Initialize node
-    rospy.init_node("ahrs8_node")
+    rospy.init_node("ahrsm2_node")
     # Initialize publisher
     imu_pub = rospy.Publisher("imu/data", Imu, queue_size=10)
     imu_msg = Imu()
 
     # Set IMU device transform frame.
-    imu_msg.header.frame_id = "ahrs8_imu"
+    imu_msg.header.frame_id = "ahrsm2_imu"
 
     # Default matrix to use for covariance of each measurement set.
     default_covariance_matrix = [1e-6, 0, 0,
@@ -153,16 +157,16 @@ if __name__ == '__main__':
         compass_serial.flushOutput()
         rospy.sleep(0.1)
     except serial.SerialException:
-        rospy.logerr("AHRS-8: Serial communications not opened properly!")
+        rospy.logerr("AHRS-M2: Serial communications not opened properly!")
 
-    rospy.loginfo("AHRS-8: Output reset, beginning to retrieve data.")
+    rospy.loginfo("AHRS-M2: Output reset, beginning to retrieve data.")
 
     while not rospy.is_shutdown():
         # Get angular velocity
         compass_serial.write("$PSPA,G\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
-            populate_G(response, imu_msg)
+            populate_gyros(response, imu_msg)
         else:
             rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
             continue
@@ -171,7 +175,7 @@ if __name__ == '__main__':
         compass_serial.write("$PSPA,QUAT\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
-            populate_QUAT(response, imu_msg)
+            populate_quaternion(response, imu_msg)
         else:
             rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
             continue
@@ -180,7 +184,7 @@ if __name__ == '__main__':
         compass_serial.write("$PSPA,A\r\n")
         response = compass_serial.readline()
         if (verify_checksum(response)):
-            populate_A(response, imu_msg)
+            populate_accels(response, imu_msg)
         else:
             rospy.logerr("AHRS-8: Bad checksum, skipping dataset.")
             continue
