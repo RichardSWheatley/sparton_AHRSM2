@@ -2,7 +2,7 @@
 Package implementing support for Sparton IMU/GPS devices.
 
 #### Currently supported devices/interfaces
-* AHRS8 over NMEA
+* AHRS-M2 over BitStream ASCII
 
 #### Usage
 1. Drop into a catkin source folder (such as ~/catkin-ws/src/)
