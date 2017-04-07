@@ -129,9 +129,7 @@ def setup_compass_output():
     
 compass_serial = SerialWrapper()
 
-if __name__ == '__main__':
-
-
+def main():
     # Initialize node
     rospy.init_node("ahrsm2_node")
     # Initialize publisher
@@ -207,4 +205,7 @@ if __name__ == '__main__':
 
         # Publish the current message.
         imu_pub.publish(imu_msg)
-        
+
+
+if __name__ == '__main__':
+    main()
