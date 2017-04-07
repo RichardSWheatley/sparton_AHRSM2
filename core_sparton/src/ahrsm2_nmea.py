@@ -9,18 +9,16 @@ import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 class SerialWrapper:
-    
-
     def __init__(self):
         self.ser = serial.Serial()
 
     def sendData(self, data):
-        self.ser.write(data)
+        self.ser.write(data.encode())
         
     def set_params(self, device, baud, time_out):
         self.ser.baudrate = baud
         self.ser.port = device
-        sefl.ser.timeout = time_out
+        self.ser.timeout = time_out
 
 # Verify the checksum obtained in the NMEA message.
 def verify_checksum(response):
@@ -114,7 +112,7 @@ def millidegrees_to_radians(value):
     return (value/1000) * (math.pi/180.0)
 
 def millig_to_meter(value):
-    return (value/1000) * 9.81
+    return (value/1000) * 9.8055
 
 # Set all covariance matrices to one matrix.
 # Only needed until we understand better how to deal with the covariance of each data set.
