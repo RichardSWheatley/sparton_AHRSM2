@@ -4,21 +4,9 @@ import rospy
 import serial, math
 from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import Imu
-
+from myserial import SimpleSerialWrapper
 import tf
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-
-class SerialWrapper:
-    def __init__(self):
-        self.ser = serial.Serial()
-
-    def sendData(self, data):
-        self.ser.write(data.encode())
-        
-    def set_params(self, device, baud, time_out):
-        self.ser.baudrate = baud
-        self.ser.port = device
-        self.ser.timeout = time_out
 
 # Verify the checksum obtained in the NMEA message.
 def verify_checksum(response):
@@ -126,8 +114,6 @@ def set_all_covariance(imu_msg, covariance_matrix):
 # Setup compass to output data with a checksum.        
 def setup_compass_output():
     compass_serial.sendData("\x13")
-    
-compass_serial = SerialWrapper()
 
 def main():
     # Initialize node
@@ -146,13 +132,15 @@ def main():
 
     # Populate the imu message with the covariance matrix.
     set_all_covariance(imu_msg, default_covariance_matrix)
+    compass_serial = SimpleSerialWrapper()
     
     default_port = "/dev/ttyUSB0"
     default_baud = 115200
     compass_port = rospy.get_param("~port", default_port)
     compass_baud = rospy.get_param("~baud", default_baud)
 
-    compass_serial.set_params(compass_port, compass_baud, 1)
+    compass_serial.setParams(compass_port, compass_baud, 1)
+    compass_serial.portOpen()
 
     try:
         # Clear all repeating I/O that could be leftover from operation.
@@ -167,9 +155,9 @@ def main():
         compass_serial.sendData("\x11")
         rospy.sleep(0.1)
         # Flush all buffers.
-        compass_serial.flushInput()
-        compass_serial.flushOutput()
+        compass_serial.flushData()
         rospy.sleep(0.1)
+        
     except serial.SerialException:
         rospy.logerr("AHRS-M2: Serial communications not opened properly!")
 
@@ -178,7 +166,7 @@ def main():
     while not rospy.is_shutdown():
         # Get angular velocity
         compass_serial.sendData("$PSPA,G\r\n")
-        response = compass_serial.readline()
+        response = compass_serial.getData(0)
         if (verify_checksum(response)):
             populate_gyros(response, imu_msg)
         else:
@@ -187,7 +175,7 @@ def main():
 
         # Get orientation in ENU convention with East as 0 yaw reference.
         compass_serial.sendData("$PSPA,QUAT\r\n")
-        response = compass_serial.readline()
+        response = compass_serial.getData(0)
         if (verify_checksum(response)):
             populate_quaternion(response, imu_msg)
         else:
@@ -196,7 +184,7 @@ def main():
 
         # Get linear acceleration.
         compass_serial.sendData("$PSPA,A\r\n")
-        response = compass_serial.readline()
+        response = compass_serial.getData(0)
         if (verify_checksum(response)):
             populate_accels(response, imu_msg)
         else:
